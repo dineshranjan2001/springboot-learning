@@ -2,6 +2,8 @@ package com.springboot.pratice.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -46,6 +48,36 @@ public class GlobalExceptionHandler {
         );
 
         return  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    // request parameter validation
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException ex,HttpServletRequest req){
+        Map<String,String> errors= ex.getConstraintViolations()
+                .stream()
+                .collect(Collectors.toMap(
+                        violation->{
+                            String path=violation.getPropertyPath().toString();
+                            return path.substring(path.lastIndexOf('.')+1);
+                        },
+                        ConstraintViolation::getMessage,
+                        (existing,replacement)->existing,
+                        HashMap::new
+                    )
+                );
+
+        ErrorResponse errorResponse=new ErrorResponse(
+                false,
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation Failed",
+                "Please check the request parameters",
+                req.getRequestURI(),
+                Instant.now(),
+                errors
+        );
+
+        return  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+
     }
 
     // path variable and method parameter validation
@@ -132,6 +164,20 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 Map.of()
         );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleException(Exception ex,HttpServletRequest req){
+        ErrorResponse errorResponse=new ErrorResponse(
+                false,
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal Server Error",
+                ex.getMessage(),
+                req.getRequestURI(),
+                Instant.now(),
+                Map.of()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 }
