@@ -153,6 +153,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex,HttpServletRequest req){
+        ErrorResponse errorResponse=new ErrorResponse(
+                false,
+                HttpStatus.BAD_REQUEST.value(),
+                "Invalid request",
+                ex.getMessage(),
+                req.getRequestURI(),
+                Instant.now(),
+                Map.of()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex,HttpServletRequest req){
         ErrorResponse errorResponse=new ErrorResponse(

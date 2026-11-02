@@ -3,6 +3,7 @@ package com.springboot.pratice.controller;
 import com.springboot.pratice.dtos.CreateStudentDTO;
 import com.springboot.pratice.dtos.StudentResponseDTO;
 import com.springboot.pratice.dtos.common.ApiResponse;
+import com.springboot.pratice.dtos.common.PageResponse;
 import com.springboot.pratice.service.StudentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -79,12 +80,30 @@ public class StudentController {
                 );
     }
 
-//    @GetMapping("/get-all")
-//    public ResponseEntity<ApiResponse<List<StudentResponseDTO>>> getAllStudents(){
-//        List<StudentResponseDTO> getAllStudentInfo=studentService.getAllStudents();
-//        if(getAllStudentInfo.isEmpty()){
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body()
-//        }
-//        return  new ResponseEntity<>(getAllStudentInfo, HttpStatus.OK);
-//    }
+
+    @GetMapping("/get-all")
+    public ResponseEntity<ApiResponse<PageResponse<StudentResponseDTO>>> getAllStudentsInfo(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "rollNumber") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction,
+            @RequestParam(required = false) String search
+    ){
+        PageResponse<StudentResponseDTO> getAllStudentsInfo=studentService.getAllStudentsInfo(
+                page,
+                size,
+                sortBy,
+                direction,
+                search
+        );
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(
+                        ApiResponse.success(
+                                HttpStatus.OK.value(),
+                                "Students info fetched successfully",
+                                getAllStudentsInfo
+                        )
+                );
+    }
 }

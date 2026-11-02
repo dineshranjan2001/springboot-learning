@@ -2,14 +2,22 @@ package com.springboot.pratice.service;
 
 import com.springboot.pratice.dtos.CreateStudentDTO;
 import com.springboot.pratice.dtos.StudentResponseDTO;
+import com.springboot.pratice.dtos.common.PageResponse;
 import com.springboot.pratice.entity.Student;
 import com.springboot.pratice.exception.ResourceExistsException;
 import com.springboot.pratice.exception.ResourceNotFoundException;
 import com.springboot.pratice.mapper.StudentMapper;
 import com.springboot.pratice.repository.StudentRepository;
+import com.springboot.pratice.specifications.StudentSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -67,8 +75,38 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public List<StudentResponseDTO> getAllStudents() {
-        List<Student> getAllStudentInfo = studentRepository.findByIsDeletedFalse();
-        return getAllStudentInfo.stream().map(StudentMapper::toStudentResponseDTO).collect(Collectors.toList());
+    public PageResponse<StudentResponseDTO> getAllStudentsInfo(int page, int size, String sortBy, String direction, String search) {
+        if(page<0){
+            throw  new IllegalArgumentException("Page number cannot be negative");
+        }
+        if(size<1 || size>100){
+            throw new IllegalArgumentException("Page size must be between 1 to 100");
+        }
+
+        Set<String> keywords=Set.of("rollNumber","firstName","lastName","studentContact","studentAddress");
+        if(sortBy==null || !keywords.contains(sortBy)){
+            throw new IllegalArgumentException("Invalid sort field");
+        }
+
+        if(direction==null ||
+                !(direction.equalsIgnoreCase("asc") || direction.equalsIgnoreCase("desc"))
+        ){
+            throw new IllegalArgumentException("Sort direction must be either asc or desc");
+        }
+
+        Sort sort=direction
+                .equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                :Sort.by(sortBy).ascending();
+
+        Pageable pageable= PageRequest.of(page,size,sort);
+
+        Specification<Student> specification= StudentSpecification
+                .isNotDeleted()
+                .and(StudentSpecification.search(search));
+
+        Page<Student> studentPage=studentRepository.findAll(specification,pageable);
+        Page<StudentResponseDTO> responsePage=studentPage.map(StudentMapper::toStudentResponseDTO);
+        return PageResponse.from(responsePage);
     }
 }
